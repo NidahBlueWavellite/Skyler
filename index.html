@@ -4,275 +4,217 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Skyler Novel</title>
-<!-- PDF.js library -->
-<!-- PDF.js library -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script>
-  // ✅ Must be set before using PDF.js
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-
-  const pdfUrl = "https://github.com/BlueWavellite/Skyler/blob/main/Skyler.pdf?raw=true";
-  let pdfDoc = null;
-  let pageNum = 1;
-  const canvas = document.getElementById("pdfCanvas");
-  const ctx = canvas.getContext("2d");
-
-  // Renders a single page
-  async function renderPage(num) {
-    const page = await pdfDoc.getPage(num);
-    const viewport = page.getViewport({ scale: 1.3 });
-    canvas.height = viewport.height;
-    canvas.width = viewport.width;
-    await page.render({ canvasContext: ctx, viewport }).promise;
-    document.getElementById("pageNum").value = num;
-    document.getElementById("pageCount").textContent = pdfDoc.numPages;
-  }
-
-  // Loads PDF once
-  async function loadPdf() {
-    const container = document.getElementById("pdfViewerContainer");
-    container.style.display = "flex";
-    pdfDoc = await pdfjsLib.getDocument(pdfUrl).promise;
-    await renderPage(pageNum);
-  }
-
-  // Navigation
-  document.getElementById("nextPage").addEventListener("click", async () => {
-    if (pageNum >= pdfDoc.numPages) return;
-    pageNum++;
-    await renderPage(pageNum);
-  });
-
-  document.getElementById("prevPage").addEventListener("click", async () => {
-    if (pageNum <= 1) return;
-    pageNum--;
-    await renderPage(pageNum);
-  });
-
-  // Manual page input
-  document.getElementById("pageNum").addEventListener("change", async e => {
-    const val = parseInt(e.target.value);
-    if (val >= 1 && val <= pdfDoc.numPages) {
-      pageNum = val;
-      await renderPage(pageNum);
-    }
-  });
-
-  // Open / Close
-  document.getElementById("openPdfBtn").addEventListener("click", loadPdf);
-  document.getElementById("closePdfBtn").addEventListener("click", () => {
-    document.getElementById("pdfViewerContainer").style.display = "none";
-  });
-</script>
-
 
 <!-- Font -->
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;700&display=swap" rel="stylesheet">
 
-<!-- PDF.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.10.188/pdf.min.js"></script>
+<!-- PDF.js library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+</script>
 
 <style>
-  body {
-    margin:0;
-    min-height:100vh;
-    font-family:'Roboto Slab', serif;
-    color: #001f4d; /* navy blue */
-    -webkit-font-smoothing:antialiased;
-    -moz-osx-font-smoothing:grayscale;
-    background: linear-gradient(
-      120deg,
-      #E0FFFF 0%,
-      #89CFF0 12%,
-      #87CEEB 25%,
-      #6495ED 38%,
-      #00BFFF 50%,
-      #0096FF 62%,
-      #4fd1c5 72%,
-      #191970 85%,
-      #E0FFFF 100%
-    );
-    background-size: 300% 300%;
-    animation: chiffonFlow 80s ease-in-out infinite;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    padding:28px 16px;
-  }
-
-  @keyframes chiffonFlow {
-    0%   { background-position: 0% 50%; }
-    50%  { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-
-  .wrapper{
-    width:100%;
-    max-width:920px;
-    padding:30px;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-  }
-
-  header h1 {
-  color: #001f4d; /* same as body text */
-  -webkit-background-clip: unset;
-  -webkit-text-fill-color: unset;
-  background: unset;
-  animation: none;
+body {
+  margin:0;
+  min-height:100vh;
+  font-family:'Roboto Slab', serif;
+  color: #001f4d; /* navy blue */
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  background: linear-gradient(
+    120deg,
+    #E0FFFF 0%,
+    #89CFF0 12%,
+    #87CEEB 25%,
+    #6495ED 38%,
+    #00BFFF 50%,
+    #0096FF 62%,
+    #4fd1c5 72%,
+    #191970 85%,
+    #E0FFFF 100%
+  );
+  background-size: 300% 300%;
+  animation: chiffonFlow 80s ease-in-out infinite;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:28px 16px;
 }
 
+@keyframes chiffonFlow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
 
-  #novel-title .title-line1 { font-size: 3rem; display:block; }
-  #novel-title .title-line2 { font-size: 2rem; display:block; }
+.wrapper{
+  width:100%;
+  max-width:920px;
+  padding:30px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
 
-  @keyframes titleGradient{
-    0% { background-position: 0% 50%; }
-    100% { background-position: 100% 50%; }
-  }
+header h1 {
+  margin:0;
+  letter-spacing:0.6px;
+  font-weight:700;
+  color: #001f4d; /* same as body text */
+  text-align:center;
+}
 
-  .cover {
-    display: flex;
-    justify-content: center;
-    margin: 24px 0;
-    background: transparent;
-  }
+#novel-title .title-line1 { font-size: 3rem; display:block; }
+#novel-title .title-line2 { font-size: 2.4rem; display:block; }
 
-  .cover img {
-    width: auto;
-    height: auto;
-    max-width: 600px;
-    max-height: 90vh;
-    display: block;
-    object-fit: contain;
-    border-radius: 10px;
-    background: transparent;
-  }
+.cover {
+  display: flex;
+  justify-content: center;
+  margin: 24px 0;
+  background: transparent;
+}
 
-  .description{
-    max-width:760px;
-    margin: 18px auto;
-    text-align:center;
-    color: #001f4d;
-    font-size:1.05rem;
-    line-height:1.5;
-  }
+.cover img {
+  width: auto;
+  height: auto;
+  max-width: 600px;
+  max-height: 90vh;
+  display: block;
+  object-fit: contain;
+  border-radius: 10px;
+  background: transparent;
+}
 
-  .meta-row{
-    display:flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    margin-top:18px;
-    width:100%;
-    max-width:760px;
-  }
+.description{
+  max-width:760px;
+  margin: 18px auto;
+  text-align:center;
+  color: #001f4d;
+  font-size:1.05rem;
+  line-height:1.5;
+}
 
-  .genre{
-    padding:10px 14px;
-    border-radius:8px;
-    background: rgba(255,255,255,0.06);
-    color:#001f4d;
-    font-weight:700;
-    white-space: pre-wrap;
-    text-align:center;
-  }
+.meta-row{
+  display:flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top:18px;
+  width:100%;
+  max-width:760px;
+}
 
-  .download{
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    width:100%;
-  }
+.genre{
+  padding:10px 14px;
+  border-radius:8px;
+  background: rgba(255,255,255,0.06);
+  color:#001f4d;
+  font-weight:700;
+  white-space: pre-wrap;
+  text-align:center;
+}
 
-  .download button{
-    padding:12px 28px;
-    border-radius:8px;
-    background: rgba(255,255,255,0.9);
-    color:#001f4d;
-    border:none;
-    font-weight:700;
-    cursor:pointer;
-    transition:background 0.3s, transform 0.2s;
-  }
+.download{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  width:100%;
+}
 
-  .download button:hover{
-    background:#ffffff;
-    transform:scale(1.03);
-  }
+.download button{
+  padding:12px 28px;
+  border-radius:8px;
+  background: rgba(255,255,255,0.9);
+  color:#001f4d;
+  border:none;
+  font-weight:700;
+  cursor:pointer;
+  transition:background 0.3s, transform 0.2s;
+}
 
-  /* Full-screen PDF Viewer */
-  #pdfViewerContainer {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: #0b2740;
-    z-index: 9999;
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    padding-top: 60px;
-  }
+.download button:hover{
+  background:#ffffff;
+  transform:scale(1.03);
+}
 
-  #pdfControls {
-    position: absolute;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 10000;
-    text-align:center;
-  }
+/* Full-screen PDF Viewer */
+#pdfViewerContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #0b2740;
+  z-index: 9999;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 60px;
+}
 
-  #pdfControls input[type=number]{ width:50px; }
+#pdfControls {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  text-align:center;
+}
 
-  #pdfViewerContainer canvas {
-    width: 100%;
-    height: calc(100% - 60px);
-    object-fit: contain;
-    background: transparent;
-  }
+#pdfControls input[type=number]{ width:50px; }
 
-  #closePdfBtn {
-    position:absolute;
-    top:10px;
-    right:10px;
-    z-index:10001;
-    padding:8px 12px;
-    border:none;
-    border-radius:6px;
-    background:#ffffff;
-    color:#0b2740;
-    font-weight:600;
-    cursor:pointer;
-  }
+#pdfScrollContainer {
+  overflow-y:auto;
+  width:100%;
+  height:calc(100% - 60px);
+  padding:10px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:20px;
+  background:#0b2740;
+}
 
-  .comments {
-    margin-top:28px;
-    padding:18px;
-    color: #001f4d;
-    width:100%;
-    max-width:760px;
-  }
+#closePdfBtn {
+  position:absolute;
+  top:10px;
+  right:10px;
+  z-index:10001;
+  padding:8px 12px;
+  border:none;
+  border-radius:6px;
+  background:#ffffff;
+  color:#0b2740;
+  font-weight:600;
+  cursor:pointer;
+}
 
-  .comments h2 {
-    margin:0 0 10px 0;
-    text-align:center;
-    color:#001f4d;
-  }
+.comments {
+  margin-top:28px;
+  padding:18px;
+  color: #001f4d;
+  width:100%;
+  max-width:760px;
+}
 
-  @media (max-width:520px){
-    #novel-title .title-line1 { font-size:2rem; }
-    #novel-title .title-line2 { font-size:1.5rem; }
-    .cover img{ max-width:260px; max-height:70vh; }
-  }
+.comments h2 {
+  margin:0 0 10px 0;
+  text-align:center;
+  color:#001f4d;
+}
+
+@media (max-width:520px){
+  #novel-title .title-line1 { font-size:2rem; }
+  #novel-title .title-line2 { font-size:1.5rem; }
+  .cover img{ max-width:260px; max-height:70vh; }
+}
 </style>
 </head>
 <body>
+
 <div class="wrapper">
   <header>
     <h1 id="novel-title">
@@ -301,15 +243,19 @@
   <!-- Full-screen PDF Viewer -->
   <div id="pdfViewerContainer">
     <button id="closePdfBtn">X</button>
-    <div id="pdfControls">
+    <div id="pdfControls" style="display:flex; justify-content:center; gap:10px; margin-bottom:10px;">
       <button id="prevPage">Prev</button>
-      <input type="number" id="pageNum" value="1">
+      <input type="number" id="pageNum" value="1" min="1">
       / <span id="pageCount">?</span>
       <button id="nextPage">Next</button>
+      <button id="zoomOut">-</button>
+      <span id="zoomLevel">100%</span>
+      <button id="zoomIn">+</button>
     </div>
-    <canvas id="pdfCanvas"></canvas>
+    <div id="pdfScrollContainer"></div>
   </div>
 
+  <!-- Comments -->
   <section class="comments">
     <h2>Comments</h2>
     <button id="loginBtn" style="padding:6px 12px;margin-bottom:12px;border-radius:6px;border:none;background:#ffffff;color:#001f4d;font-weight:600;cursor:pointer;">Login with Google</button>
@@ -321,94 +267,107 @@
   </section>
 </div>
 
-<!-- PDF.js Script -->
+<!-- PDF.js Viewer Script -->
 <script>
-const openPdfBtn = document.getElementById('openPdfBtn');
-const closePdfBtn = document.getElementById('closePdfBtn');
-const pdfContainer = document.getElementById('pdfViewerContainer');
-const canvas = document.getElementById('pdfCanvas');
-const ctx = canvas.getContext('2d');
-const pageNumInput = document.getElementById('pageNum');
-const pageCountSpan = document.getElementById('pageCount');
-const prevBtn = document.getElementById('prevPage');
-const nextBtn = document.getElementById('nextPage');
-
-// ✅ Use your correct GitHub Pages URL:
 const pdfUrl = "https://bluewavellite.github.io/Skyler/Skyler.pdf";
+
+const pdfContainer = document.getElementById("pdfViewerContainer");
+const scrollContainer = document.getElementById("pdfScrollContainer");
+const openBtn = document.getElementById("openPdfBtn");
+const closeBtn = document.getElementById("closePdfBtn");
+const prevBtn = document.getElementById("prevPage");
+const nextBtn = document.getElementById("nextPage");
+const pageInput = document.getElementById("pageNum");
+const pageCountSpan = document.getElementById("pageCount");
+const zoomInBtn = document.getElementById("zoomIn");
+const zoomOutBtn = document.getElementById("zoomOut");
+const zoomLabel = document.getElementById("zoomLevel");
 
 let pdfDoc = null;
 let currentPage = 1;
 let totalPages = 0;
-let rendering = false;
+let zoom = 1.0; // 100%
 
-async function renderPage(num) {
-  rendering = true;
-  const page = await pdfDoc.getPage(num);
-
-  const viewport = page.getViewport({ scale: 1 });
-  const scale = Math.min(window.innerWidth / viewport.width, (window.innerHeight - 100) / viewport.height);
-  const scaledViewport = page.getViewport({ scale });
-
-  canvas.width = scaledViewport.width;
-  canvas.height = scaledViewport.height;
-
-  await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
-  rendering = false;
-  pageNumInput.value = num;
+async function renderAllPages() {
+  scrollContainer.innerHTML = "";
+  for (let i = 1; i <= pdfDoc.numPages; i++) {
+    const page = await pdfDoc.getPage(i);
+    const viewport = page.getViewport({ scale: zoom });
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    scrollContainer.appendChild(canvas);
+  }
+  totalPages = pdfDoc.numPages;
+  pageCountSpan.textContent = totalPages;
+  pageInput.value = currentPage;
 }
 
 async function loadPdf() {
-  try {
-    pdfDoc = await pdfjsLib.getDocument(pdfUrl).promise;
-    totalPages = pdfDoc.numPages;
-    pageCountSpan.textContent = totalPages;
-    currentPage = 1;
-    await renderPage(currentPage);
-  } catch (err) {
-    alert("Error loading PDF: " + err.message);
-    console.error(err);
-  }
+  pdfDoc = await pdfjsLib.getDocument(pdfUrl).promise;
+  currentPage = 1;
+  zoom = 1.0;
+  zoomLabel.textContent = "100%";
+  await renderAllPages();
 }
 
-openPdfBtn.addEventListener("click", async () => {
+openBtn.addEventListener("click", async () => {
   pdfContainer.style.display = "flex";
-  openPdfBtn.style.display = "none";
+  openBtn.style.display = "none";
   await loadPdf();
 });
 
-closePdfBtn.addEventListener("click", () => {
+closeBtn.addEventListener("click", () => {
   pdfContainer.style.display = "none";
-  openPdfBtn.style.display = "inline-block";
+  openBtn.style.display = "inline-block";
 });
 
-prevBtn.addEventListener("click", async () => {
-  if (rendering || currentPage <= 1) return;
+// Page navigation
+prevBtn.addEventListener("click", () => {
+  if (currentPage <= 1) return;
   currentPage--;
-  await renderPage(currentPage);
+  scrollContainer.scrollTop = scrollContainer.children[currentPage-1].offsetTop;
+  pageInput.value = currentPage;
 });
-
-nextBtn.addEventListener("click", async () => {
-  if (rendering || currentPage >= totalPages) return;
+nextBtn.addEventListener("click", () => {
+  if (currentPage >= totalPages) return;
   currentPage++;
-  await renderPage(currentPage);
+  scrollContainer.scrollTop = scrollContainer.children[currentPage-1].offsetTop;
+  pageInput.value = currentPage;
 });
-
-pageNumInput.addEventListener("change", async () => {
-  let val = parseInt(pageNumInput.value);
-  if (isNaN(val)) return;
-  if (val < 1) val = 1;
-  if (val > totalPages) val = totalPages;
+pageInput.addEventListener("change", () => {
+  let val = parseInt(pageInput.value);
+  if (isNaN(val)) val=1;
+  if(val<1) val=1;
+  if(val>totalPages) val=totalPages;
   currentPage = val;
-  await renderPage(currentPage);
+  scrollContainer.scrollTop = scrollContainer.children[currentPage-1].offsetTop;
 });
 
-window.addEventListener("resize", async () => {
-  if (pdfDoc && !rendering) await renderPage(currentPage);
+// Zoom
+zoomInBtn.addEventListener("click", async () => {
+  zoom += 0.1;
+  zoomLabel.textContent = Math.round(zoom*100)+"%";
+  await renderAllPages();
+  scrollContainer.scrollTop = scrollContainer.children[currentPage-1].offsetTop;
+});
+zoomOutBtn.addEventListener("click", async () => {
+  if(zoom<=0.2) return;
+  zoom -= 0.1;
+  zoomLabel.textContent = Math.round(zoom*100)+"%";
+  await renderAllPages();
+  scrollContainer.scrollTop = scrollContainer.children[currentPage-1].offsetTop;
+});
+
+// Resize
+window.addEventListener("resize", async ()=>{
+  if(pdfDoc) await renderAllPages();
 });
 </script>
 
-
-<!-- Firebase Comments -->
+<!-- Firebase Comments Script -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-analytics.js";
@@ -443,37 +402,32 @@ loginBtn.addEventListener('click', async () => {
     currentUser = result.user;
     alert(`Logged in as ${currentUser.displayName}`);
     loginBtn.style.display = 'none';
-  } catch (error) {
-    console.error(error);
-  }
+  } catch (error) { console.error(error); }
 });
 
 commentBtn.addEventListener('click', async () => {
-  if (!currentUser) {
-    alert("Please log in first!");
-    return;
-  }
+  if(!currentUser){ alert("Please log in first!"); return; }
   const text = commentInput.value.trim();
-  if (!text) return;
-  await addDoc(collection(db, 'comments'), {
-    text: text,
-    name: currentUser.displayName,
+  if(!text) return;
+  await addDoc(collection(db,'comments'),{
+    text:text,
+    name:currentUser.displayName,
     timestamp: serverTimestamp()
   });
-  commentInput.value = '';
+  commentInput.value='';
 });
 
-const q = query(collection(db, 'comments'), orderBy('timestamp'));
-onSnapshot(q, (snapshot) => {
-  commentsList.innerHTML = '';
-  snapshot.forEach(doc => {
+const q = query(collection(db,'comments'), orderBy('timestamp'));
+onSnapshot(q,(snapshot)=>{
+  commentsList.innerHTML='';
+  snapshot.forEach(doc=>{
     const data = doc.data();
     const div = document.createElement('div');
-    div.textContent = `${data.name || 'Anonymous'}: ${data.text}`;
-    div.style.padding = '8px 12px';
-    div.style.marginBottom = '6px';
-    div.style.background = 'rgba(0,31,77,0.1)';
-    div.style.borderRadius = '6px';
+    div.textContent = `${data.name||'Anonymous'}: ${data.text}`;
+    div.style.padding='8px 12px';
+    div.style.marginBottom='6px';
+    div.style.background='rgba(0,31,77,0.1)';
+    div.style.borderRadius='6px';
     commentsList.appendChild(div);
   });
 });
@@ -481,4 +435,3 @@ onSnapshot(q, (snapshot) => {
 
 </body>
 </html>
-
