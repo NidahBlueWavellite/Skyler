@@ -271,67 +271,80 @@ const pageCountSpan = document.getElementById('pageCount');
 const prevBtn = document.getElementById('prevPage');
 const nextBtn = document.getElementById('nextPage');
 
-// PDF file URL
+// ✅ Use your correct GitHub Pages URL:
 const pdfUrl = "https://bluewavellite.github.io/Skyler/Skyler.pdf";
-
 
 let pdfDoc = null;
 let currentPage = 1;
 let totalPages = 0;
+let rendering = false;
 
-async function renderPage(pageNum) {
-  const page = await pdfDoc.getPage(pageNum);
+async function renderPage(num) {
+  rendering = true;
+  const page = await pdfDoc.getPage(num);
+
   const viewport = page.getViewport({ scale: 1 });
-  const scale = Math.min(window.innerWidth / viewport.width, (window.innerHeight - 60) / viewport.height);
+  const scale = Math.min(window.innerWidth / viewport.width, (window.innerHeight - 100) / viewport.height);
   const scaledViewport = page.getViewport({ scale });
+
   canvas.width = scaledViewport.width;
   canvas.height = scaledViewport.height;
+
   await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
-  pageNumInput.value = pageNum;
+  rendering = false;
+  pageNumInput.value = num;
 }
 
 async function loadPdf() {
-  pdfDoc = await pdfjsLib.getDocument(pdfUrl).promise;
-  totalPages = pdfDoc.numPages;
-  pageCountSpan.textContent = totalPages;
-  renderPage(currentPage);
+  try {
+    pdfDoc = await pdfjsLib.getDocument(pdfUrl).promise;
+    totalPages = pdfDoc.numPages;
+    pageCountSpan.textContent = totalPages;
+    currentPage = 1;
+    await renderPage(currentPage);
+  } catch (err) {
+    alert("Error loading PDF: " + err.message);
+    console.error(err);
+  }
 }
 
-openPdfBtn.addEventListener('click', () => {
-  pdfContainer.style.display = 'flex';
-  loadPdf();
-  openPdfBtn.style.display = 'none';
+openPdfBtn.addEventListener("click", async () => {
+  pdfContainer.style.display = "flex";
+  openPdfBtn.style.display = "none";
+  await loadPdf();
 });
 
-closePdfBtn.addEventListener('click', () => {
-  pdfContainer.style.display = 'none';
-  openPdfBtn.style.display = 'inline-block';
+closePdfBtn.addEventListener("click", () => {
+  pdfContainer.style.display = "none";
+  openPdfBtn.style.display = "inline-block";
 });
 
-prevBtn.addEventListener('click', () => {
-  if (currentPage <= 1) return;
+prevBtn.addEventListener("click", async () => {
+  if (rendering || currentPage <= 1) return;
   currentPage--;
-  renderPage(currentPage);
+  await renderPage(currentPage);
 });
 
-nextBtn.addEventListener('click', () => {
-  if (currentPage >= totalPages) return;
+nextBtn.addEventListener("click", async () => {
+  if (rendering || currentPage >= totalPages) return;
   currentPage++;
-  renderPage(currentPage);
+  await renderPage(currentPage);
 });
 
-pageNumInput.addEventListener('change', () => {
+pageNumInput.addEventListener("change", async () => {
   let val = parseInt(pageNumInput.value);
+  if (isNaN(val)) return;
   if (val < 1) val = 1;
   if (val > totalPages) val = totalPages;
   currentPage = val;
-  renderPage(currentPage);
+  await renderPage(currentPage);
 });
 
-window.addEventListener('resize', () => {
-  if (pdfDoc) renderPage(currentPage);
+window.addEventListener("resize", async () => {
+  if (pdfDoc && !rendering) await renderPage(currentPage);
 });
 </script>
+
 
 <!-- Firebase Comments -->
 <script type="module">
