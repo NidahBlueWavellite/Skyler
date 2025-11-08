@@ -3,126 +3,94 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Skyler PDF Viewer</title>
+  <title>Novel Reader</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
   <style>
     body {
       margin: 0;
-      background-color: #0d2a3a;
-      color: white;
-      font-family: 'Segoe UI', sans-serif;
+      font-family: Georgia, serif;
+      background-color: #0e2a3b;
+      color: #eaeaea;
+      overflow: hidden;
+    }
+
+    .reader-container {
       display: flex;
       flex-direction: column;
       height: 100vh;
     }
 
     .toolbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #082133;
-      padding: 8px 16px;
+      background-color: #092136;
+      padding: 10px;
+      text-align: right;
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
 
     .toolbar button {
-      background-color: #eee;
+      background: #eaeaea;
       border: none;
-      padding: 6px 10px;
-      border-radius: 4px;
+      padding: 6px 12px;
+      margin-left: 6px;
+      border-radius: 6px;
       cursor: pointer;
     }
 
-    .toolbar button:hover {
-      background-color: #ccc;
-    }
-
-    .toolbar input {
-      width: 40px;
-      text-align: center;
-    }
-
-    #pdf-container {
+    .pdf-container {
       flex: 1;
-      overflow-y: auto;
+      overflow-y: auto;  /* ensures scroll works */
       display: flex;
-      flex-direction: column;
-      align-items: center;
+      justify-content: center;
+      align-items: flex-start;
       padding: 20px;
     }
 
     canvas {
-      margin-bottom: 10px;
-      box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
-      border-radius: 4px;
+      display: block;
+      margin-bottom: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      border-radius: 6px;
+      background: #fff;
     }
   </style>
 </head>
 <body>
-
-  <div class="toolbar">
-    <div>
+  <div class="reader-container">
+    <div class="toolbar">
       <button id="closeBtn">Close</button>
     </div>
-
-    <div>
-      <button id="zoomIn">+</button>
-      <button id="zoomOut">−</button>
-    </div>
+    <div id="pdf-container" class="pdf-container"></div>
   </div>
 
-  <div id="pdf-container"></div>
-
   <script>
-    const pdfUrl = "https://bluewavellite.github.io/Skyler/Skyler.pdf"; // 🔹 Replace this with your actual raw PDF link
-
-    let pdfDoc = null;
-    let scale = 1.2;
-
+ const pdfUrl = "https://bluewavellite.github.io/Skyler/Skyler.pdf"; // 🔹 Replace this with your actual raw PDF link
     const pdfContainer = document.getElementById("pdf-container");
+    const closeBtn = document.getElementById("closeBtn");
 
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
-
-    // 🔹 Load PDF
-    pdfjsLib.getDocument(pdfUrl).promise.then((pdf) => {
-      pdfDoc = pdf;
-      renderAllPages();
+    closeBtn.addEventListener("click", () => {
+      window.close();
     });
 
-    function renderAllPages() {
-      pdfContainer.innerHTML = "";
-      for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
-        pdfDoc.getPage(pageNum).then((page) => {
+    const loadingTask = pdfjsLib.getDocument(pdfUrl);
+    loadingTask.promise.then(pdf => {
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        pdf.getPage(pageNum).then(page => {
+          const scale = 1.3;
           const viewport = page.getViewport({ scale });
           const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
+          const context = canvas.getContext("2d");
           canvas.height = viewport.height;
           canvas.width = viewport.width;
           pdfContainer.appendChild(canvas);
-
-          page.render({ canvasContext: ctx, viewport });
+          const renderContext = { canvasContext: context, viewport: viewport };
+          page.render(renderContext);
         });
       }
-    }
-
-    // 🔹 Zoom controls
-    document.getElementById("zoomIn").addEventListener("click", () => {
-      scale += 0.2;
-      renderAllPages();
-    });
-
-    document.getElementById("zoomOut").addEventListener("click", () => {
-      if (scale > 0.4) {
-        scale -= 0.2;
-        renderAllPages();
-      }
-    });
-
-    // 🔹 Close button
-    document.getElementById("closeBtn").addEventListener("click", () => {
-      window.close();
+    }).catch(err => {
+      console.error("Error loading PDF:", err);
     });
   </script>
-
 </body>
 </html>
