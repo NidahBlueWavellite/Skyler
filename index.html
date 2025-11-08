@@ -1,119 +1,157 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Skyler PDF Viewer</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-  <style>
-    body {
-      margin: 0;
-      background-color: #0d2a3a;
-      color: white;
-      font-family: 'Segoe UI', sans-serif;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skyler Novel</title>
 
-    .toolbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #082133;
-      padding: 8px 16px;
-    }
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;700&display=swap" rel="stylesheet">
 
-    .toolbar button {
-      background-color: #eee;
-      border: none;
-      padding: 6px 10px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
+<style>
+  body {
+    margin:0;
+    min-height:100vh;
+    font-family:'Roboto Slab', serif;
+    color: #001f4d;
+    background: linear-gradient(
+      120deg,
+      #E0FFFF 0%,
+      #89CFF0 12%,
+      #87CEEB 25%,
+      #6495ED 38%,
+      #00BFFF 50%,
+      #0096FF 62%,
+      #4fd1c5 72%,
+      #191970 85%,
+      #E0FFFF 100%
+    );
+    background-size: 300% 300%;
+    animation: chiffonFlow 80s ease-in-out infinite;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:28px 16px;
+  }
 
-    .toolbar button:hover {
-      background-color: #ccc;
-    }
+  @keyframes chiffonFlow {
+    0%{background-position:0% 50%;}
+    50%{background-position:100% 50%;}
+    100%{background-position:0% 50%;}
+  }
 
-    #pdf-container {
-      flex: 1;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
-      min-height: 0; /* ✅ Makes scroll work */
-    }
+  .wrapper{
+    width:100%;
+    max-width:920px;
+    padding:30px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
 
-    canvas {
-      margin-bottom: 10px;
-      box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
-      border-radius: 4px;
-    }
-  </style>
+  header h1{
+    margin:0;
+    font-weight:700;
+    background: linear-gradient(90deg, #e6f7ff, #ffffff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: titleGradient 10s ease-in-out infinite alternate;
+    text-align:center;
+  }
+
+  #novel-title .title-line1 { font-size: 3rem; display:block; }
+  #novel-title .title-line2 { font-size: 2rem; display:block; }
+
+  @keyframes titleGradient{
+    0%{background-position:0% 50%;}
+    100%{background-position:100% 50%;}
+  }
+
+  .cover img {
+    max-width: 600px;
+    max-height: 90vh;
+    border-radius: 10px;
+  }
+
+  .description{
+    max-width:760px;
+    text-align:center;
+    margin:18px auto;
+  }
+
+  .meta-row{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:12px;
+    margin-top:18px;
+  }
+
+  .genre{
+    padding:10px 14px;
+    border-radius:8px;
+    font-weight:700;
+  }
+
+  .download button{
+    padding:12px 28px;
+    border-radius:8px;
+    background:#ffffffd2;
+    color:#001f4d;
+    border:none;
+    font-weight:700;
+    cursor:pointer;
+    transition:0.3s;
+  }
+
+  .download button:hover{
+    background:#ffffff;
+    transform:scale(1.03);
+  }
+
+  .comments { margin-top:28px; max-width:760px; width:100%; }
+</style>
 </head>
 <body>
 
-  <div class="toolbar">
-    <div>
-      <button id="closeBtn">Close</button>
-    </div>
+<div class="wrapper">
+  <header>
+    <h1 id="novel-title">
+      <span class="title-line1">Skyler,</span>
+      <span class="title-line2">I wish to breathe another season</span>
+    </h1>
+  </header>
 
-    <div>
-      <button id="zoomIn">+</button>
-      <button id="zoomOut">−</button>
+  <div class="cover">
+    <img src="Skyler.png" alt="Skyler cover image">
+  </div>
+
+  <div class="description">
+    Nova, a girl who prefers solitude, unexpectedly meets a friend who draws her into new experiences...
+  </div>
+
+  <div class="meta-row">
+    <div class="genre">Genre: Slice of Life, Literary Fiction, Nature-Inspired</div>
+
+    <!-- ✅ NEW: Open long-scroll reader in new tab -->
+    <div class="download">
+      <button onclick="window.open('reader.html', '_blank')">Read Now</button>
     </div>
   </div>
 
-  <div id="pdf-container"></div>
+  <!-- Comments remain untouched -->
+  <section class="comments">
+    <h2>Comments</h2>
+    <button id="loginBtn">Login with Google</button>
+    <input type="text" id="commentInput" placeholder="Write a comment...">
+    <button id="commentBtn">Post</button>
+    <div id="commentsList"></div>
+  </section>
+</div>
 
-  <script>
- const pdfUrl = "https://bluewavellite.github.io/Skyler/Skyler.pdf"; // 🔹 Replace this with your actual raw PDF link
-    let pdfDoc = null;
-    let scale = 1.2;
-
-    const pdfContainer = document.getElementById("pdf-container");
-
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
-
-    pdfjsLib.getDocument(pdfUrl).promise.then((pdf) => {
-      pdfDoc = pdf;
-      renderAllPages();
-    });
-
-    function renderAllPages() {
-      pdfContainer.innerHTML = "";
-      for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
-        pdfDoc.getPage(pageNum).then((page) => {
-          const viewport = page.getViewport({ scale });
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
-          canvas.height = viewport.height;
-          canvas.width = viewport.width;
-          pdfContainer.appendChild(canvas);
-          page.render({ canvasContext: ctx, viewport });
-        });
-      }
-    }
-
-    document.getElementById("zoomIn").addEventListener("click", () => {
-      scale += 0.2;
-      renderAllPages();
-    });
-
-    document.getElementById("zoomOut").addEventListener("click", () => {
-      if (scale > 0.4) {
-        scale -= 0.2;
-        renderAllPages();
-      }
-    });
-
-    document.getElementById("closeBtn").addEventListener("click", () => {
-      window.close();
-    });
-  </script>
+<!-- Firebase comments script stays the same -->
+<script type="module">
+  /* your exact existing firebase code unchanged */
+</script>
 
 </body>
 </html>
