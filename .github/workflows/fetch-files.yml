@@ -10,15 +10,15 @@ jobs:
   fetch-private-files:
     runs-on: ubuntu-latest
 
-    steps:
+        steps:
       - name: Checkout public repo
         uses: actions/checkout@v3
 
       - name: Checkout private repo
         uses: actions/checkout@v3
         with:
-          repository: nidahbluewavellite/mine   # replace YOUR_USERNAME/mine
-          token: ${{ secrets.MT }}
+          repository: YOUR_USERNAME/mine
+          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
           path: private-files
 
       - name: Copy PDF and image to public repo
@@ -33,4 +33,4 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Skyler/Skyler.pdf Skyler/Skyler.png
           git commit -m "Update PDF and cover from private repo" || echo "No changes"
-          git push
+          git push origin HEAD:${{ github.ref }}
