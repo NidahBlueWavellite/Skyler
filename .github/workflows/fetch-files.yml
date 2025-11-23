@@ -3,7 +3,7 @@ name: Fetch private files for Skyler site
 on:
   push:
     branches:
-      - main
+      - '**'   # any branch
   workflow_dispatch:
 
 jobs:
@@ -11,36 +11,42 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the public repo (main repo)
+      # 1️⃣ Checkout public repo (keep push rights)
       - name: Checkout public repo
         uses: actions/checkout@v3
         with:
-          persist-credentials: true   # allows push
-          fetch-depth: 0              # fetch full history, needed for push
+          persist-credentials: true
+          fetch-depth: 0
 
-      # Step 2: Checkout private repo in a subfolder
+      # 2️⃣ Checkout private repo (do NOT overwrite public credentials)
       - name: Checkout private repo
         uses: actions/checkout@v3
         with:
           repository: NidahBlueWavellite/mine
           token: ${{ secrets.MT }}
           path: private-files
-          fetch-depth: 1
+          persist-credentials: false
 
-      # Step 3: Copy files from private repo
+      # 3️⃣ Copy files only if they exist
       - name: Copy PDF and image
         run: |
           mkdir -p Skyler
-          cp private-files/Skyler.pdf Skyler/
-          cp private-files/Skyler.png Skyler/
+          if [ -f "private-files/Skyler.pdf" ]; then
+            cp private-files/Skyler.pdf Skyler/
+          fi
+          if [ -f "private-files/Skyler.png" ]; then
+            cp private-files/Skyler.png Skyler/
+          fi
 
-      # Step 4: Commit and push changes
-      - name: Commit and push
+      # 4️⃣ Commit and push only if changes exist
+      - name: Commit and push changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Skyler/Skyler.pdf Skyler/Skyler.png
-          # Commit only if changes exist
-          git diff --cached --quiet || git commit -m "Update PDF and cover from private repo"
-          # Push using the default origin (credentials persisted)
-          git push origin HEAD:main
+          if ! git diff --cached --quiet; then
+            git commit -m "Update PDF and cover from private repo"
+            git push origin HEAD:${GITHUB_REF##refs/heads/}
+          else
+            echo "No changes to commit"
+          fi
