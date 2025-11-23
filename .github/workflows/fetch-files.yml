@@ -15,7 +15,7 @@ jobs:
       - name: Checkout public repo
         uses: actions/checkout@v3
         with:
-          persist-credentials: true  # needed to push later
+          persist-credentials: true  # required to allow push with GITHUB_TOKEN
 
       # Step 2: Checkout private repo
       - name: Checkout private repo
@@ -40,5 +40,5 @@ jobs:
           git add Skyler/Skyler.pdf Skyler/Skyler.png
           # Commit only if there are changes
           git diff --cached --quiet || git commit -m "Update PDF and cover from private repo"
-          # Push using GITHUB_TOKEN for authentication
+          # Push using GITHUB_TOKEN to avoid permission issues
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} HEAD:${{ github.ref }}
