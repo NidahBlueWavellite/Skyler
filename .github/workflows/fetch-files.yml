@@ -11,9 +11,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout the public repo
       - name: Checkout public repo
         uses: actions/checkout@v3
+        with:
+          persist-credentials: true  # needed to push later
 
+      # Step 2: Checkout private repo
       - name: Checkout private repo
         uses: actions/checkout@v3
         with:
@@ -21,17 +25,20 @@ jobs:
           token: ${{ secrets.MT }}
           path: private-files
 
+      # Step 3: Copy files from private repo to public repo
       - name: Copy PDF and image to public repo
         run: |
           mkdir -p Skyler
           cp private-files/Skyler.pdf Skyler/
           cp private-files/Skyler.png Skyler/
 
+      # Step 4: Commit and push changes
       - name: Commit and push changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Skyler/Skyler.pdf Skyler/Skyler.png
-          git commit -m "Update PDF and cover from private repo" || echo "No changes"
-          git push origin HEAD:${{ github.ref }}
-
+          # Commit only if there are changes
+          git diff --cached --quiet || git commit -m "Update PDF and cover from private repo"
+          # Push using GITHUB_TOKEN for authentication
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} HEAD:${{ github.ref }}
