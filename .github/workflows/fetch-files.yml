@@ -11,34 +11,36 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the public repo
+      # Step 1: Checkout the public repo (main repo)
       - name: Checkout public repo
         uses: actions/checkout@v3
         with:
-          persist-credentials: true  # required to allow push with GITHUB_TOKEN
+          persist-credentials: true   # allows push
+          fetch-depth: 0              # fetch full history, needed for push
 
-      # Step 2: Checkout private repo
+      # Step 2: Checkout private repo in a subfolder
       - name: Checkout private repo
         uses: actions/checkout@v3
         with:
           repository: NidahBlueWavellite/mine
           token: ${{ secrets.MT }}
           path: private-files
+          fetch-depth: 1
 
-      # Step 3: Copy files from private repo to public repo
-      - name: Copy PDF and image to public repo
+      # Step 3: Copy files from private repo
+      - name: Copy PDF and image
         run: |
           mkdir -p Skyler
           cp private-files/Skyler.pdf Skyler/
           cp private-files/Skyler.png Skyler/
 
       # Step 4: Commit and push changes
-      - name: Commit and push changes
+      - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Skyler/Skyler.pdf Skyler/Skyler.png
-          # Commit only if there are changes
+          # Commit only if changes exist
           git diff --cached --quiet || git commit -m "Update PDF and cover from private repo"
-          # Push using GITHUB_TOKEN to avoid permission issues
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} HEAD:${{ github.ref }}
+          # Push using the default origin (credentials persisted)
+          git push origin HEAD:main
