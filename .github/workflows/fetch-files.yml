@@ -2,7 +2,8 @@ name: Fetch private files for Skyler site
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -10,29 +11,43 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout the public repo with credentials
       - name: Checkout public repo
         uses: actions/checkout@v3
         with:
-          persist-credentials: true     # <<< REQUIRED
-          fetch-depth: 0
+          persist-credentials: true  # Required to allow push
+          fetch-depth: 0             # Fetch full history for safety
 
+      # 2️⃣ Checkout private repo (without overwriting public credentials)
       - name: Checkout private repo
         uses: actions/checkout@v3
         with:
           repository: NidahBlueWavellite/mine
           token: ${{ secrets.MT }}
           path: private-files
+          persist-credentials: false
 
+      # 3️⃣ Copy files (only if they exist)
       - name: Copy PDF and image
         run: |
           mkdir -p Skyler
-          cp private-files/Skyler.pdf Skyler/
-          cp private-files/Skyler.png Skyler/
+          if [ -f "private-files/Skyler.pdf" ]; then
+            cp private-files/Skyler.pdf Skyler/
+          fi
+          if [ -f "private-files/Skyler.png" ]; then
+            cp private-files/Skyler.png Skyler/
+          fi
 
-      - name: Commit and push
+      # 4️⃣ Commit and push changes (only if changes exist)
+      - name: Commit and push changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Skyler/Skyler.pdf Skyler/Skyler.png
-          git commit -m "Update PDF and cover from private repo" || echo "No changes"
-          git push
+          if ! git diff --cached --quiet; then
+            git commit -m "Update PDF and cover from private repo"
+            # Push to main branch
+            git push origin HEAD:main
+          else
+            echo "No changes to commit"
+
