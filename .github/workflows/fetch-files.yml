@@ -11,11 +11,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout public repo (keep credentials for push)
+      # 1️⃣ Checkout public repo (credentials controlled manually)
       - name: Checkout public repo
         uses: actions/checkout@v3
         with:
-          persist-credentials: false  # We'll control push manually
+          persist-credentials: false
           fetch-depth: 0
 
       # 2️⃣ Debug: show remote & branch info
@@ -48,7 +48,7 @@ jobs:
             cp private-files/Skyler.png Skyler/
           fi
 
-      # 5️⃣ Commit and push using PAT (fail-safe)
+      # 5️⃣ Commit and push using PAT
       - name: Commit and push changes
         env:
           PAT: ${{ secrets.DONT }}
@@ -62,3 +62,4 @@ jobs:
             git push https://x-access-token:${PAT}@github.com/e/Skyler.git HEAD:main
           else
             echo "No changes to commit"
+          fi
