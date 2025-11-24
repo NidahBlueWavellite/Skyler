@@ -1,4 +1,4 @@
-nname: Fetch private files for Skyler site
+name: Fetch private files for Skyler site
 
 on:
   push:
