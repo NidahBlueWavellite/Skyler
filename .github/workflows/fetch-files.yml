@@ -59,7 +59,7 @@ jobs:
           if ! git diff --cached --quiet; then
             git commit -m "Update PDF and cover from private repo"
             echo "Pushing to remote using PAT..."
-            git push https://x-access-token:${PAT}@github.com/e/Skyler.git HEAD:main
+            git push https://x-access-token:${PAT}@github.com/NidahBlueWavellite/Skyler.git HEAD:main
           else
             echo "No changes to commit"
           fi
