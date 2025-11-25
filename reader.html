@@ -53,28 +53,68 @@ body {
 
 <div class="toolbar">
   <button id="closeBtn">Close</button>
-  <span>Zoom / Page Controls are inside the PDF viewer</span>
+  <span>Page:</span>
+  <input type="number" id="pageNumber" value="1" min="1">
+  <span id="pageCount">/ ?</span>
+  <button id="zoomIn">+</button>
+  <button id="zoomOut">−</button>
 </div>
 
 <iframe id="pdf-frame"></iframe>
 
 <script>
-  const urlParams = new URLSearchParams(window.location.search);
-  const pdfUrl = urlParams.get("file"); // e.g., file=pdfs/mydoc.pdf
+const urlParams = new URLSearchParams(window.location.search);
+const pdfUrl = urlParams.get("file"); // e.g., file=pdfs/mydoc.pdf
 
-  if (!pdfUrl) {
-    alert("PDF file not specified!");
-    throw new Error("No PDF file provided");
+if (!pdfUrl) {
+  alert("PDF file not specified!");
+  throw new Error("No PDF file provided");
+}
+
+const frame = document.getElementById("pdf-frame");
+const pageInput = document.getElementById("pageNumber");
+const pageCountSpan = document.getElementById("pageCount");
+
+let scale = 1.2;
+
+// Load PDF.js viewer iframe
+frame.src = `pdfjs/viewer.html?file=${encodeURIComponent(pdfUrl)}&disableDownload=true&disablePrint=true&disableOpenFile=true`;
+
+// Close button
+document.getElementById("closeBtn").onclick = () => window.close();
+
+// Zoom buttons: control the iframe viewer via query string reload
+document.getElementById("zoomIn").onclick = () => {
+  scale += 0.2;
+  updateIframeScale();
+};
+document.getElementById("zoomOut").onclick = () => {
+  if (scale > 0.6) scale -= 0.2;
+  updateIframeScale();
+};
+
+function updateIframeScale() {
+  // Reload iframe with scale parameter
+  const src = `pdfjs/viewer.html?file=${encodeURIComponent(pdfUrl)}&disableDownload=true&disablePrint=true&disableOpenFile=true&scale=${scale}`;
+  frame.src = src;
+}
+
+// Page number jump
+pageInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    const page = Number(pageInput.value);
+    // Post message to viewer iframe
+    frame.contentWindow.postMessage({ type: 'goToPage', page: page }, '*');
   }
+});
 
-  // Load the external PDF.js viewer (make sure 'pdfjs/web/viewer.html' exists in the repo)
-  const viewerFrame = document.getElementById("pdf-frame");
-
-  // Pass the PDF URL via query string
-  viewerFrame.src = `pdfjs/web/viewer.html?file=${encodeURIComponent(pdfUrl)}&disableDownload=true&disablePrint=true&disableOpenFile=true`;
-
-  // Close button
-  document.getElementById("closeBtn").onclick = () => window.close();
+// Listen for page change messages from PDF.js viewer
+window.addEventListener('message', event => {
+  if (event.data && event.data.type === 'pageChanged') {
+    pageInput.value = event.data.page;
+    pageCountSpan.textContent = `/ ${event.data.totalPages}`;
+  }
+});
 </script>
 
 </body>
