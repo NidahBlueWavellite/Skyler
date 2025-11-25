@@ -4,20 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-
-
- <title>Skyler, I wish to breathe another season pdf</title>
+<title>Skyler, I Wish to Breathe Another Season – PDF Viewer</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 
 <style>
   body {
     margin:0;
     font-family:'Roboto Slab', serif;
-    background: #0d2a3a;
-    color: #fff;
+    background:#0d2a3a;
+    color:#fff;
     display:flex;
     flex-direction:column;
     height:100vh;
+    overflow:hidden;
   }
 
   .toolbar {
@@ -29,9 +28,11 @@
     position:sticky;
     top:0;
     z-index:10;
+    flex-shrink:0;
   }
 
-  .toolbar button, .toolbar input {
+  .toolbar button,
+  .toolbar input {
     background-color:#eee;
     border:none;
     padding:6px 10px;
@@ -41,26 +42,25 @@
     font-weight:600;
   }
 
-  .toolbar input[type="number"] {
-    width:60px;
-    text-align:center;
+  #pdf-container-wrapper {
+    flex:1;
+    overflow-y:auto;
+    position:relative;
   }
 
   #pdf-container {
-    flex:1;
-    overflow-y:auto;
+    padding:18px;
     display:flex;
     flex-direction:column;
     align-items:center;
-    padding:18px;
     gap:14px;
+    transform-origin:top center;
   }
 
   canvas {
     box-shadow:0 0 8px rgba(0,0,0,0.5);
     border-radius:4px;
-    width:auto;
-    max-width:95vw;
+    display:block;
   }
 </style>
 </head>
@@ -68,18 +68,21 @@
 
 <div class="toolbar">
   <button id="closeBtn">Close</button>
+
   <button id="zoomOut">−</button>
   <span>Zoom</span>
   <button id="zoomIn">+</button>
+
   <span>Page:</span>
   <input type="number" id="pageNumber" value="1" min="1">
   <span id="pageCount">/ ?</span>
 </div>
 
-<div id="pdf-container"></div>
+<div id="pdf-container-wrapper">
+  <div id="pdf-container"></div>
+</div>
 
 <script>
-  // Get PDF URL from query string
   const urlParams = new URLSearchParams(window.location.search);
   const pdfUrl = urlParams.get("file");
 
@@ -88,13 +91,14 @@
     throw new Error("No PDF file provided");
   }
 
+  const pdfWrapper = document.getElementById("pdf-container-wrapper");
   const pdfContainer = document.getElementById("pdf-container");
   const pageNumInput = document.getElementById("pageNumber");
   const pageCountSpan = document.getElementById("pageCount");
 
   let pdfDoc = null;
-  let scale = 1.2;
   let canvases = [];
+  let scale = 1;  // CSS zoom only
 
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
@@ -102,47 +106,80 @@
   pdfjsLib.getDocument(pdfUrl).promise.then((pdf) => {
     pdfDoc = pdf;
     pageCountSpan.textContent = "/ " + pdf.numPages;
-    renderAll();
+    renderPages();
   }).catch(err => {
     alert("Failed to load PDF: " + err.message);
     console.error(err);
   });
 
-  function renderAll() {
+  function renderPages() {
     pdfContainer.innerHTML = "";
     canvases = [];
 
     for (let i = 1; i <= pdfDoc.numPages; i++) {
       pdfDoc.getPage(i).then((page) => {
-        const viewport = page.getViewport({ scale });
+        const viewport = page.getViewport({ scale: 1 }); // real pixel size
+
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-        pdfContainer.appendChild(canvas);
 
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = viewport.width * dpr;
+        canvas.height = viewport.height * dpr;
+        ctx.scale(dpr, dpr);
+
+        canvas.style.width = viewport.width + "px";
+        canvas.style.height = viewport.height + "px";
+
+        pdfContainer.appendChild(canvas);
         page.render({ canvasContext: ctx, viewport });
+
         canvases.push(canvas);
+        observer.observe(canvas);
       });
     }
   }
 
-  // Jump to page
+  // Auto-update page number during scroll
+  let observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const idx = canvases.indexOf(entry.target);
+        if (idx !== -1) pageNumInput.value = idx + 1;
+      }
+    });
+  }, {
+    root: pdfWrapper,
+    threshold: 0.6
+  });
+
+  // Manual jump to page
   pageNumInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       const p = Number(pageNumInput.value);
       if (p >= 1 && p <= pdfDoc.numPages) {
-        canvases[p-1].scrollIntoView({ behavior: "smooth" });
+        canvases[p - 1].scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }
   });
 
-  // Zoom
-  document.getElementById("zoomIn").onclick = () => { scale += 0.2; renderAll(); };
-  document.getElementById("zoomOut").onclick = () => { if(scale>0.6){ scale -= 0.2; renderAll(); } };
+  // Fast CSS zoom
+  document.getElementById("zoomIn").onclick = () => {
+    scale += 0.1;
+    pdfContainer.style.transform = `scale(${scale})`;
+  };
 
-  // Close
-  document.getElementById("closeBtn").onclick = () => { window.close(); };
+  document.getElementById("zoomOut").onclick = () => {
+    if (scale > 0.4) {
+      scale -= 0.1;
+      pdfContainer.style.transform = `scale(${scale})`;
+    }
+  };
+
+  // Close button
+  document.getElementById("closeBtn").onclick = () => {
+    window.close();
+  };
 </script>
 
 </body>
