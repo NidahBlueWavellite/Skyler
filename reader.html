@@ -63,8 +63,9 @@ body {
 <iframe id="pdf-frame"></iframe>
 
 <script>
+// --- PDF URL comes from index.html via query string ---
 const urlParams = new URLSearchParams(window.location.search);
-const pdfUrl = urlParams.get("file"); // e.g., file=pdfs/mydoc.pdf
+const pdfUrl = urlParams.get("file"); // e.g., passed from index.html
 
 if (!pdfUrl) {
   alert("PDF file not specified!");
@@ -74,41 +75,37 @@ if (!pdfUrl) {
 const frame = document.getElementById("pdf-frame");
 const pageInput = document.getElementById("pageNumber");
 const pageCountSpan = document.getElementById("pageCount");
-
 let scale = 1.2;
 
-// Load PDF.js viewer iframe
-frame.src = `pdfjs/viewer.html?file=${encodeURIComponent(pdfUrl)}&disableDownload=true&disablePrint=true&disableOpenFile=true`;
+// Load the PDF.js viewer (in repo root) with your PDF
+frame.src = `viewer.html?file=${encodeURIComponent(pdfUrl)}&disableDownload=true&disablePrint=true&disableOpenFile=true&scale=${scale}`;
 
-// Close button
+// --- Close button ---
 document.getElementById("closeBtn").onclick = () => window.close();
 
-// Zoom buttons: control the iframe viewer via query string reload
+// --- Zoom buttons ---
 document.getElementById("zoomIn").onclick = () => {
   scale += 0.2;
-  updateIframeScale();
+  reloadIframe();
 };
 document.getElementById("zoomOut").onclick = () => {
   if (scale > 0.6) scale -= 0.2;
-  updateIframeScale();
+  reloadIframe();
 };
 
-function updateIframeScale() {
-  // Reload iframe with scale parameter
-  const src = `pdfjs/viewer.html?file=${encodeURIComponent(pdfUrl)}&disableDownload=true&disablePrint=true&disableOpenFile=true&scale=${scale}`;
-  frame.src = src;
+function reloadIframe() {
+  frame.src = `viewer.html?file=${encodeURIComponent(pdfUrl)}&disableDownload=true&disablePrint=true&disableOpenFile=true&scale=${scale}`;
 }
 
-// Page number jump
+// --- Page jump via input ---
 pageInput.addEventListener("keydown", e => {
   if (e.key === "Enter") {
     const page = Number(pageInput.value);
-    // Post message to viewer iframe
     frame.contentWindow.postMessage({ type: 'goToPage', page: page }, '*');
   }
 });
 
-// Listen for page change messages from PDF.js viewer
+// --- Listen for page changes from viewer ---
 window.addEventListener('message', event => {
   if (event.data && event.data.type === 'pageChanged') {
     pageInput.value = event.data.page;
