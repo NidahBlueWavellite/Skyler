@@ -1,80 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PDF Viewer — robust scroll page detection + crisp text</title>
 
-<title>Skyler, I Wish to Breathe Another Season – PDF Viewer</title>
+<!-- pdf.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 
 <style>
-  body {
-    margin:0;
-    font-family:'Roboto Slab', serif;
-    background:#0d2a3a;
-    color:#fff;
-    display:flex;
-    flex-direction:column;
-    height:100vh;
-    overflow:hidden;
-  }
-
+  :root { --bg:#0d2a3a; --toolbar:#082133; --panel-padding:18px; }
+  html,body { height:100%; margin:0; font-family: 'Roboto Slab', serif; background:var(--bg); color:#fff; }
   .toolbar {
-    display:flex;
-    align-items:center;
-    gap:10px;
-    background:#082133;
-    padding:8px 16px;
-    position:sticky;
-    top:0;
-    z-index:10;
-    flex-shrink:0;
+    display:flex; gap:10px; align-items:center;
+    background:var(--toolbar); padding:8px 16px; position:sticky; top:0; z-index:20;
   }
-
-  .toolbar button,
-  .toolbar input {
-    background-color:#eee;
-    border:none;
-    padding:6px 10px;
-    border-radius:4px;
-    cursor:pointer;
-    color:#0d2a3a;
-    font-weight:600;
-  }
-
-  #pdf-container-wrapper {
-    flex:1;
-    overflow-y:auto;
-    position:relative;
-  }
-
-  #pdf-container {
-    padding:18px;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:14px;
-    transform-origin:top center;
-  }
-
-  canvas {
-    box-shadow:0 0 8px rgba(0,0,0,0.5);
-    border-radius:4px;
-    display:block;
-  }
+  .toolbar button, .toolbar input { background:#eee; border:none; padding:6px 10px; border-radius:6px; color:#0d2a3a; font-weight:600; cursor:pointer; }
+  #pdf-container-wrapper { height:calc(100vh - 52px); overflow:auto; }
+  #pdf-container { padding:var(--panel-padding); display:flex; flex-direction:column; align-items:center; gap:14px; }
+  .page-slot { width:100%; max-width:95vw; display:flex; justify-content:center; }
+  canvas { display:block; border-radius:4px; box-shadow:0 0 10px rgba(0,0,0,0.5); background:white; }
+  .loading-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#222; font-weight:700; }
 </style>
 </head>
 <body>
 
 <div class="toolbar">
   <button id="closeBtn">Close</button>
-
   <button id="zoomOut">−</button>
   <span>Zoom</span>
   <button id="zoomIn">+</button>
-
   <span>Page:</span>
-  <input type="number" id="pageNumber" value="1" min="1">
+  <input id="pageNumber" type="number" value="1" min="1" style="width:60px;text-align:center" />
   <span id="pageCount">/ ?</span>
 </div>
 
@@ -83,116 +40,283 @@
 </div>
 
 <script>
-  const urlParams = new URLSearchParams(window.location.search);
-  const pdfUrl = urlParams.get("file");
-  if (!pdfUrl) { alert("PDF file not specified!"); throw new Error("No PDF file provided"); }
+/* Robust PDF viewer:
+   - reliable page-number update while scrolling (IntersectionObserver + center fallback)
+   - lazy low-res preview + high-res render for visible pages
+   - accurate backing pixel sizing: canvas.width = cssWidth * backingScale
+   - controlled zoom using PDF.js re-render (not CSS transform)
+*/
 
-  const pdfWrapper = document.getElementById("pdf-container");
-  const pageNumInput = document.getElementById("pageNumber");
-  const pageCountSpan = document.getElementById("pageCount");
+const urlParams = new URLSearchParams(window.location.search);
+const pdfUrl = urlParams.get('file');
+if (!pdfUrl) { alert('PDF file not specified in ?file='); throw new Error('No PDF file'); }
 
-  let pdfDoc = null;
-  let pages = [];
-  let zoom = 1.2;  // real PDF.js zoom (not CSS)
-  let isRendering = false;
+const containerWrapper = document.getElementById('pdf-container-wrapper');
+const container = document.getElementById('pdf-container');
+const pageInput = document.getElementById('pageNumber');
+const pageCountSpan = document.getElementById('pageCount');
 
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
-  pdfjsLib.getDocument(pdfUrl).promise.then((pdf) => {
-    pdfDoc = pdf;
-    pageCountSpan.textContent = "/ " + pdf.numPages;
-    renderAllPages();
+let pdfDoc = null;
+let canvases = []; // {slot:div, canvas, pageNum, pageRef, cssW, cssH, lowRendered, highRendered}
+let zoom = 1.0;      // PDF.js scale (real rendering scale)
+const DPR = () => (window.devicePixelRatio || 1);
+const HIGH_MULT = 1.0; // high-res multiplier (1.0 means DPR * zoom)
+const LOW_MULT = 0.5;  // low-res preview multiplier relative to high (0.5 = faster preview)
+
+// IntersectionObserver: update page number & trigger high-res render for visible page(s)
+let io = null;
+
+(async function load() {
+  try {
+    pdfDoc = await pdfjsLib.getDocument(pdfUrl).promise;
+    pageCountSpan.textContent = '/ ' + pdfDoc.numPages;
+    createPlaceholders();
+    setupObserver();
+    // initial render pass (low-res for all immediately, high-res for first visible pages)
+    initialLowRender();
+    // schedule initial high-res render for visible
+    setTimeout(updateVisibleHighRes, 120);
+  } catch (err) {
+    console.error(err);
+    alert('Failed loading PDF: ' + err.message);
+  }
+})();
+
+function createPlaceholders() {
+  container.innerHTML = '';
+  canvases = [];
+  // We don't yet know exact CSS size until we fetch page viewport; create slots and fetch page sizes lazily
+  const promises = [];
+  for (let p = 1; p <= pdfDoc.numPages; p++) {
+    const slot = document.createElement('div');
+    slot.className = 'page-slot';
+    slot.style.position = 'relative';
+    // placeholder canvas -> we'll resize once we know viewport
+    const canvas = document.createElement('canvas');
+    canvas.dataset.page = p;
+    canvas.style.maxWidth = '100%';
+    canvas.style.boxSizing = 'content-box';
+    slot.appendChild(canvas);
+    container.appendChild(slot);
+    canvases.push({ slot, canvas, pageNum: p, pageRef: null, cssW: null, cssH: null, lowRendered: false, highRendered: false });
+    // get page viewport at scale=1 to know base size
+    promises.push(pdfDoc.getPage(p).then(page => {
+      const vp = page.getViewport({ scale: 1 });
+      // store pageRef and CSS width/height (at scale=1)
+      const c = canvases[p-1];
+      c.pageRef = page;
+      c.cssW = Math.round(vp.width);
+      c.cssH = Math.round(vp.height);
+      // set CSS size so layout is correct BEFORE render (helps IntersectionObserver)
+      c.canvas.style.width = c.cssW + 'px';
+      c.canvas.style.height = c.cssH + 'px';
+    }));
+  }
+  // Wait for all page dimension fetches so layout is stable
+  return Promise.all(promises);
+}
+
+function setupObserver() {
+  if (io) io.disconnect();
+  io = new IntersectionObserver(handleIntersections, {
+    root: containerWrapper,
+    threshold: [0.25, 0.5, 0.75] // multiple thresholds - any intersection will notify
   });
+  canvases.forEach(c => io.observe(c.canvas));
+}
 
-  // Render all pages at CURRENT zoom
-  function renderAllPages() {
-    pdfWrapper.innerHTML = "";
-    pages = [];
+function handleIntersections(entries) {
+  // Update page number to the canvas that has the largest intersection ratio (most visible)
+  let best = null;
+  for (const e of entries) {
+    if (!best || e.intersectionRatio > best.intersectionRatio) best = e;
+  }
+  if (best) {
+    const p = Number(best.target.dataset.page);
+    if (!isNaN(p)) pageInput.value = p;
+    // high-res render for this page and neighbors
+    requestHighResAround(p);
+  }
+}
 
-    for (let i = 1; i <= pdfDoc.numPages; i++) {
-      let container = document.createElement("div");
-      container.style.position = "relative";
+// Fallback centerline detection in case IO misses (also keeps page-box accurate on fast scroll)
+let centerTimer = null;
+containerWrapper.addEventListener('scroll', () => {
+  // update page number by centerline quickly
+  centerlineUpdate();
+  // debounce heavy high-res updates
+  if (centerTimer) clearTimeout(centerTimer);
+  centerTimer = setTimeout(() => updateVisibleHighRes(), 140);
+}, { passive: true });
 
-      let canvas = document.createElement("canvas");
-      canvas.dataset.page = i;
+function centerlineUpdate() {
+  const wrapperRect = containerWrapper.getBoundingClientRect();
+  const centerY = wrapperRect.top + wrapperRect.height / 2;
+  // find canvas whose rect contains center or closest
+  let bestIdx = -1;
+  let bestDist = Infinity;
+  for (let i=0;i<canvases.length;i++) {
+    const r = canvases[i].canvas.getBoundingClientRect();
+    if (r.top <= centerY && r.bottom >= centerY) { bestIdx = i; break; }
+    const dist = Math.min(Math.abs(r.top - centerY), Math.abs(r.bottom - centerY));
+    if (dist < bestDist) { bestDist = dist; bestIdx = i; }
+  }
+  if (bestIdx >= 0) pageInput.value = canvases[bestIdx].pageNum;
+}
 
-      container.appendChild(canvas);
-      pdfWrapper.appendChild(container);
+// --- Rendering helpers ---
+// compute backing scale (pixels-per-css-px) we will use for high-res render:
+function backingScaleHigh() { return Math.max(1, DPR()) * HIGH_MULT * zoom; }
+// low-res backing scale:
+function backingScaleLow() { return Math.max(1, DPR()) * LOW_MULT * zoom; }
 
-      pages.push(canvas);
-      renderPage(i);
+// render a low-res preview quickly (used initially)
+async function renderLowRes(index) {
+  const info = canvases[index];
+  if (!info || !info.pageRef || info.lowRendered) return;
+  const page = info.pageRef;
+  const cssW = info.cssW, cssH = info.cssH;
+  const b = backingScaleLow();
+  const w = Math.ceil(cssW * b), h = Math.ceil(cssH * b);
+  const ctx = info.canvas.getContext('2d', { alpha: false });
+  info.canvas.width = w; info.canvas.height = h;
+  info.canvas.style.width = cssW + 'px'; info.canvas.style.height = cssH + 'px';
+  ctx.setTransform(b,0,0,b,0,0);
+  ctx.clearRect(0,0,cssW,cssH);
+  ctx.imageSmoothingEnabled = true;
+  const vp = page.getViewport({ scale: zoom }); // render at zoom (viewport uses PDF units); transform handles backing
+  await page.render({ canvasContext: ctx, viewport: vp }).promise;
+  info.lowRendered = true;
+}
+
+// render high-res for one page
+async function renderHighRes(index) {
+  const info = canvases[index];
+  if (!info || !info.pageRef) return;
+  // if already rendered at high-res and zoom hasn't changed (we track via flags only), skip
+  // NOTE: for a robust system you'd track rendered zoom; here we simply re-render when requested
+  const page = info.pageRef;
+  const cssW = info.cssW, cssH = info.cssH;
+  const b = backingScaleHigh();
+  const w = Math.ceil(cssW * b), h = Math.ceil(cssH * b);
+  const ctx = info.canvas.getContext('2d', { alpha: false });
+  // set high-res backing
+  info.canvas.width = w; info.canvas.height = h;
+  info.canvas.style.width = cssW + 'px'; info.canvas.style.height = cssH + 'px';
+  // draw at correct scale
+  ctx.setTransform(b,0,0,b,0,0);
+  ctx.clearRect(0,0,cssW,cssH);
+  ctx.imageSmoothingEnabled = false;
+  try {
+    await page.render({ canvasContext: ctx, viewport: page.getViewport({ scale: zoom }) }).promise;
+    info.highRendered = true;
+  } catch (err) {
+    console.error('High-res render failed page', info.pageNum, err);
+  }
+}
+
+// render low-res for all pages quickly (fast initial pass)
+function initialLowRender() {
+  // render low-res for first N pages quickly, then progressively for others
+  const N = Math.min(6, canvases.length);
+  for (let i=0;i<N;i++) renderLowRes(i);
+  // lazy render the rest low-res in background (non-blocking)
+  for (let i=N;i<canvases.length;i++) {
+    setTimeout(()=>renderLowRes(i), 80 + i*20);
+  }
+}
+
+// Render high-res for visible pages ± buffer
+async function updateVisibleHighRes() {
+  // determine viewport area in document coordinates
+  const wrapRect = containerWrapper.getBoundingClientRect();
+  const top = wrapRect.top, bottom = wrapRect.bottom;
+  const bufferPx = 600; // how many px above/below to include
+  const up = top - bufferPx, down = bottom + bufferPx;
+  const toRender = [];
+  for (let i=0;i<canvases.length;i++) {
+    const r = canvases[i].canvas.getBoundingClientRect();
+    if (r.bottom >= up && r.top <= down) toRender.push(i);
+  }
+  // render in sequence (avoid hammering threads)
+  for (let idx of toRender) {
+    await renderHighRes(idx);
+  }
+}
+
+// Request high-res render for page and neighbors (fast when user lands on a page)
+function requestHighResAround(pageNum) {
+  const i = pageNum - 1;
+  const list = [];
+  if (i-1 >=0) list.push(i-1);
+  list.push(i);
+  if (i+1 < canvases.length) list.push(i+1);
+  // kick off async renders
+  list.forEach((idx, k) => setTimeout(()=>renderHighRes(idx), k*60));
+}
+
+// Page input jump
+pageInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const p = Number(pageInput.value);
+    if (p >= 1 && p <= canvases.length) {
+      canvases[p-1].canvas.scrollIntoView({ behavior:'smooth', block:'center' });
+      // ensure high-res renders
+      setTimeout(()=>requestHighResAround(p), 180);
     }
   }
+});
 
-  // Render single page
-  function renderPage(pageNum) {
-    pdfDoc.getPage(pageNum).then(page => {
-      const viewport = page.getViewport({ scale: zoom });
+// Zoom controls: re-render visible pages at new zoom (real PDF re-render)
+document.getElementById('zoomIn').onclick = () => {
+  zoom = Math.min(3.0, zoom + 0.15);
+  // clear flags so high-res re-renders
+  canvases.forEach(c => { c.lowRendered = false; c.highRendered = false; });
+  // create fresh placeholders sized to new zoom (we re-size canvas CSS to page css size at scale=zoom)
+  // We must update cssW/cssH because css size = baseWidth*zoom (we fetched base at scale=1 earlier)
+  canvases.forEach(c => {
+    c.canvas.style.width = Math.round(c.cssW * zoom) + 'px';
+    c.canvas.style.height = Math.round(c.cssH * zoom) + 'px';
+  });
+  // quick low-res refresh for visible
+  updateVisibleLowThenHigh();
+};
 
-      const canvas = pages[pageNum - 1];
-      const ctx = canvas.getContext("2d");
+document.getElementById('zoomOut').onclick = () => {
+  zoom = Math.max(0.4, zoom - 0.15);
+  canvases.forEach(c => { c.lowRendered = false; c.highRendered = false; });
+  canvases.forEach(c => {
+    c.canvas.style.width = Math.round(c.cssW * zoom) + 'px';
+    c.canvas.style.height = Math.round(c.cssH * zoom) + 'px';
+  });
+  updateVisibleLowThenHigh();
+};
 
-      const dpr = window.devicePixelRatio || 1;
-
-      // High-resolution crisp text
-      canvas.width = viewport.width * dpr;
-      canvas.height = viewport.height * dpr;
-
-      canvas.style.width = viewport.width + "px";
-      canvas.style.height = viewport.height + "px";
-
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-      page.render({ canvasContext: ctx, viewport });
-    });
+async function updateVisibleLowThenHigh() {
+  // low-res for visible region first, then high-res
+  const wrapRect = containerWrapper.getBoundingClientRect();
+  const top = wrapRect.top, bottom = wrapRect.bottom;
+  const buffer = 400;
+  const up = top - buffer, down = bottom + buffer;
+  const visibleIdx = [];
+  for (let i=0;i<canvases.length;i++) {
+    const r = canvases[i].canvas.getBoundingClientRect();
+    if (r.bottom >= up && r.top <= down) visibleIdx.push(i);
   }
+  // low-res for visible
+  await Promise.all(visibleIdx.map(i => renderLowRes(i)));
+  // high-res for visible
+  for (let i of visibleIdx) await renderHighRes(i);
+}
 
-  // Scroll → update page number
-  document.getElementById("pdf-container").addEventListener("scroll", () => {
-    const centerY = pdfWrapper.scrollTop + pdfWrapper.clientHeight / 2;
+// Close
+document.getElementById('closeBtn').onclick = () => window.close();
 
-    let currentPage = 1;
-    for (let i = 0; i < pages.length; i++) {
-      const c = pages[i];
-      const top = c.offsetTop;
-      const bottom = top + c.clientHeight;
+// ensure centerline page number update periodically (extra safety)
+setInterval(centerlineUpdate, 250);
 
-      if (top <= centerY && bottom >= centerY) {
-        currentPage = i + 1;
-        break;
-      }
-    }
-    pageNumInput.value = currentPage;
-  });
-
-  // Jump to page
-  pageNumInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      const p = Number(pageNumInput.value);
-      if (p >= 1 && p <= pdfDoc.numPages) {
-        pages[p - 1].scrollIntoView({ behavior: "smooth" });
-      }
-    }
-  });
-
-  // Zoom controls (real PDF zoom)
-  document.getElementById("zoomIn").onclick = () => {
-    zoom += 0.15;
-    renderAllPages(); // accurate re-render
-  };
-
-  document.getElementById("zoomOut").onclick = () => {
-    if (zoom > 0.4) {
-      zoom -= 0.15;
-      renderAllPages();
-    }
-  };
-
-  // Close
-  document.getElementById("closeBtn").onclick = () => window.close();
 </script>
-
-
 </body>
 </html>
