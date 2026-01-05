@@ -4,39 +4,60 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Skyler, I wish to breathe another season — A Novella</title>
+<meta name="description" content="Skyler: A nature-inspired, slice-of-life novel about friendship, resilience, and self-discovery.">
 
 <link rel="icon" type="image/jpg" href="s.jpg">
+
+<meta property="og:title" content="Skyler Novel">
+<meta property="og:description" content="Skyler: A nature-inspired, slice-of-life novel about friendship, resilience, and self-discovery.">
+<meta property="og:image" content="s.jpg">
+<meta property="og:url" content="https://NidahBlueWavellite.github.io/Skyler/">
+<meta property="og:type" content="website">
+
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;700&display=swap" rel="stylesheet">
 
 <style>
-body{
+body {
   margin:0;
   min-height:100vh;
   font-family:'Roboto Slab', serif;
   color:#001f4d;
   background:linear-gradient(
-    120deg,#E0FFFF,#89CFF0,#87CEEB,#6495ED,#00BFFF,
-    #0096FF,#4fd1c5,#191970,#E0FFFF
+    120deg,
+    #E0FFFF 0%,
+    #89CFF0 12%,
+    #87CEEB 25%,
+    #6495ED 38%,
+    #00BFFF 50%,
+    #0096FF 62%,
+    #4fd1c5 72%,
+    #191970 85%,
+    #E0FFFF 100%
   );
   background-size:300% 300%;
-  animation:flow 80s ease-in-out infinite;
+  animation:chiffonFlow 80s ease-in-out infinite;
   display:flex;
-  justify-content:center;
+  flex-direction:column;
+  align-items:center;
   padding:28px 16px;
 }
-@keyframes flow{
-  0%{background-position:0% 50%}
-  50%{background-position:100% 50%}
-  100%{background-position:0% 50%}
+
+@keyframes chiffonFlow {
+  0%{background-position:0% 50%;}
+  50%{background-position:100% 50%;}
+  100%{background-position:0% 50%;}
 }
+
 .wrapper{
-  max-width:920px;
   width:100%;
+  max-width:920px;
+  padding:30px;
   display:flex;
   flex-direction:column;
   align-items:center;
 }
-h1{
+
+header h1{
   margin:0;
   font-weight:700;
   background:linear-gradient(90deg,#001f4d,#000080,#191970);
@@ -44,81 +65,113 @@ h1{
   -webkit-text-fill-color:transparent;
   text-align:center;
 }
-.title-line1{font-size:3rem}
-.title-line2{font-size:2rem}
+
+#novel-title .title-line1{font-size:3rem;display:block;}
+#novel-title .title-line2{font-size:2rem;display:block;}
+
 .cover img{
   max-width:600px;
+  max-height:90vh;
   border-radius:10px;
 }
+
 .description{
   max-width:760px;
   text-align:center;
   margin:18px auto;
 }
+
 .meta-row{
   display:flex;
   flex-direction:column;
-  gap:14px;
   align-items:center;
+  gap:14px;
+  margin-top:18px;
 }
-button{
+
+.genre{
+  padding:10px 14px;
+  border-radius:8px;
+  font-weight:700;
+}
+
+.action button{
   padding:12px 28px;
   border-radius:8px;
   background:#ffffffd2;
+  color:#001f4d;
   border:none;
   font-weight:700;
   cursor:pointer;
+  transition:.3s;
 }
-button:hover{background:#fff}
+
+.action button:hover{
+  background:#ffffff;
+  transform:scale(1.03);
+}
 </style>
 </head>
-
 <body>
+
 <div class="wrapper">
 
-<h1>
-  <span class="title-line1">Skyler,</span>
-  <span class="title-line2">I wish to breathe another season</span>
-</h1>
+<header>
+  <h1 id="novel-title">
+    <span class="title-line1">Skyler,</span>
+    <span class="title-line2">I wish to breathe another season</span>
+  </h1>
+</header>
 
 <div class="cover">
-  <img src="Skyler/Skyler.png" alt="Skyler cover">
+  <img src="Skyler/Skyler.png" alt="Skyler cover image">
 </div>
 
 <div class="description">
-A quiet, nature-infused journey of friendship, resilience,
-and rediscovering the small breaths that keep life warm.
+Nova, a girl who prefers solitude, unexpectedly meets a friend who draws her into new experiences. Through fleeting days and quiet moments, she gradually rediscovers the sources of hope, connection, and the simple joys that give life its breath.
+</div>
+
+<div class="meta-row">
+  <div class="genre">Genre: Slice of Life · Literary Fiction · Nature-Inspired</div>
+
+  <!-- PDF path -->
+  <script>
+    const pdfFile = "Skyler/Skyler.pdf";
+    const PREVIEW_PAGES = 10; // 🔧 change later
+  </script>
+
+  <div class="action">
+    <button onclick="
+      window.open(
+        'reader.html?file=' + encodeURIComponent(pdfFile) +
+        '&preview=' + PREVIEW_PAGES,
+        '_blank'
+      );
+    ">
+      Preview (First <span id="pcount">10</span> Pages)
+    </button>
+  </div>
+
+  <!-- FULL READER (COMMENTED FOR NOW)
+  <div class="action">
+    <button onclick="
+      window.open(
+        'reader.html?file=' + encodeURIComponent(pdfFile),
+        '_blank'
+      );
+    ">
+      Read Now
+    </button>
+  </div>
+  -->
+
+</div>
 </div>
 
 <script>
-const PDF_FILE = "Skyler/Skyler.pdf";
-const PREVIEW_PAGES = 10; // 🔧 change anytime
+document.getElementById("pcount").textContent = PREVIEW_PAGES;
 </script>
 
-<div class="meta-row">
-
-<!-- 🔓 PREVIEW BUTTON -->
-<button onclick="
-window.open(
-  'reader.html?file=' + encodeURIComponent(PDF_FILE) +
-  '&mode=preview&limit=' + PREVIEW_PAGES,
-  '_blank'
-)">
-Preview (First 10 Pages)
-</button>
-
-<!-- 🔒 READ NOW BUTTON (COMMENT WHEN NEEDED)
-<button onclick="
-window.open(
-  'reader.html?file=' + encodeURIComponent(PDF_FILE) +
-  '&mode=full',
-  '_blank'
-)">
-Read Now
-</button>
--->
-
-</div>
-</div>
 </body>
 </html>
+
