@@ -81,9 +81,6 @@ html, body {
 <div id="stamp">Last updated: loading…</div>
 
 <script>
-/* ===============================
-   PARAMETERS
-================================ */
 const params = new URLSearchParams(window.location.search);
 
 const pdf   = params.get("file");          // required
@@ -97,9 +94,18 @@ if (!pdf) {
 
 /* ===============================
    LOAD PDF.js VIEWER
+   Adjust path to viewer.html as needed
 ================================ */
+
+// If viewer.html is in the same folder
+// const viewerPath = "viewer.html";
+
+// If viewer.html is inside /web folder (typical PDF.js download)
+const viewerPath = "web/viewer.html";
+
 const viewerURL =
-  "viewer.html?file=" + encodeURIComponent(pdf) +
+  viewerPath +
+  "?file=" + encodeURIComponent(pdf) +
   "&disableDownload=true" +
   "&disablePrint=true" +
   "&disableOpenFile=true";
@@ -108,7 +114,7 @@ const iframe = document.getElementById("viewerFrame");
 iframe.src = viewerURL;
 
 /* ===============================
-   BLUR PREVIEW LOGIC (SOFT)
+   SOFT BLUR PREVIEW LOGIC
 ================================ */
 if (mode === "preview" && limit > 0) {
   let locked = false;
@@ -124,16 +130,13 @@ if (mode === "preview" && limit > 0) {
       const viewH     = win.innerHeight;
       const fullH     = doc.documentElement.scrollHeight;
 
-      /* heuristic: pages are roughly equal height */
-      const estimatedPage =
-        Math.ceil((scrollTop + viewH) / (fullH / 20));
+      const estimatedPage = Math.ceil((scrollTop + viewH) / (fullH / 20));
 
       if (estimatedPage > limit) {
         locked = true;
 
-        document.getElementById("blurOverlay").style.display = "block";
+        document.getElementById("blurOverlay").style.display = "flex";
 
-        /* snap back slightly */
         win.scrollTo({
           top: (fullH / 20) * (limit - 0.3),
           behavior: "smooth"
@@ -144,7 +147,7 @@ if (mode === "preview" && limit > 0) {
 }
 
 /* ===============================
-   PUBLISH PROOF (LIVE FROM GITHUB)
+   GITHUB PUBLISH PROOF
 ================================ */
 fetch("https://api.github.com/repos/NidahBlueWavellite/Skyler/commits/main")
   .then(r => r.json())
@@ -158,6 +161,7 @@ fetch("https://api.github.com/repos/NidahBlueWavellite/Skyler/commits/main")
       "Last updated: unavailable";
   });
 </script>
+
 
 </body>
 </html>
