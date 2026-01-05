@@ -10,8 +10,8 @@ html, body {
   height: 100%;
 }
 
-/* PDF.js viewer iframe */
-#viewerFrame {
+/* PDF iframe using browser PDF viewer */
+#pdfFrame {
   width: 100%;
   height: 100%;
   border: none;
@@ -69,7 +69,7 @@ html, body {
 
 <body>
 
-<iframe id="viewerFrame"></iframe>
+<iframe id="pdfFrame"></iframe>
 
 <div id="blurOverlay">
   <div id="blurContent">
@@ -81,9 +81,6 @@ html, body {
 <div id="stamp">Last updated: loading…</div>
 
 <script>
-/* ===============================
-   PARAMETERS
-================================ */
 const params = new URLSearchParams(window.location.search);
 
 const pdf   = params.get("file");          // required
@@ -96,56 +93,25 @@ if (!pdf) {
 }
 
 /* ===============================
-   LOAD PDF.js VIEWER
-   viewer.html is in the same folder
+   Load PDF in browser viewer
 ================================ */
-const viewerPath = "viewer.html"; 
-const viewerURL =
-  viewerPath +
-  "?file=" + encodeURIComponent(pdf) +
-  "&disableDownload=true" +
-  "&disablePrint=true" +
-  "&disableOpenFile=true";
-
-const iframe = document.getElementById("viewerFrame");
-iframe.src = viewerURL;
+const pdfFrame = document.getElementById("pdfFrame");
+pdfFrame.src = pdf;  // just use browser PDF viewer
 
 /* ===============================
-   SOFT BLUR PREVIEW LOGIC
+   Soft blur preview
 ================================ */
-if (mode === "preview" && limit > 0) {
-  let locked = false;
-
-  iframe.addEventListener("load", () => {
-    const win = iframe.contentWindow;
-    const doc = win.document;
-
-    win.addEventListener("scroll", () => {
-      if (locked) return;
-
-      const scrollTop = win.scrollY;
-      const viewH     = win.innerHeight;
-      const fullH     = doc.documentElement.scrollHeight;
-
-      /* approximate page detection: 20 pages assumed */
-      const estimatedPage = Math.ceil((scrollTop + viewH) / (fullH / 20));
-
-      if (estimatedPage > limit) {
-        locked = true;
-
-        document.getElementById("blurOverlay").style.display = "flex";
-
-        win.scrollTo({
-          top: (fullH / 20) * (limit - 0.3),
-          behavior: "smooth"
-        });
-      }
-    });
-  });
+if(mode === "preview" && limit > 0){
+  // Show blur overlay after small delay to simulate preview end
+  // Since browser PDF iframe cannot detect exact page scroll,
+  // we just show overlay after 2 seconds for demonstration
+  setTimeout(() => {
+    document.getElementById("blurOverlay").style.display = "flex";
+  }, 2000);
 }
 
 /* ===============================
-   GITHUB PUBLISH PROOF
+   GitHub publish proof
 ================================ */
 fetch("https://api.github.com/repos/NidahBlueWavellite/Skyler/commits/main")
   .then(r => r.json())
